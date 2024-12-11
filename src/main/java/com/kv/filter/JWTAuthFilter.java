@@ -29,6 +29,12 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             HttpServletResponse httpResponse,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        // Allow OPTIONS(CORS Preflight) requests to pass through this AuthFilter.
+        if (httpRequest.getMethod().equalsIgnoreCase("OPTIONS")) {
+            filterChain.doFilter(httpRequest, httpResponse);
+            return;
+        }
+
         final String authHeader = httpRequest.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String jwt = authHeader.substring(7);
