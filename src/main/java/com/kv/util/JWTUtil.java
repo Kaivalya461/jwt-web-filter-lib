@@ -2,6 +2,7 @@ package com.kv.util;
 
 import com.kv.constant.JwtKey;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.experimental.UtilityClass;
 
@@ -18,16 +19,21 @@ import java.util.function.Function;
 public class JWTUtil {
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, username);
+        return createToken(claims, username, 1000 * 60 * 60); // 1 Hour
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
+    public String generateRefreshToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, username, 1000 * 60 * 60 * 24); // 1 Day
+    }
+
+    private String createToken(Map<String, Object> claims, String subject, long expirationDate) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .signWith(getSignInKey()) //Do I need to pass HS256 Algo manually?
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) //10 hours
+                .expiration(new Date(System.currentTimeMillis() + expirationDate))
                 .compact();
     }
 
@@ -76,7 +82,7 @@ public class JWTUtil {
       *     3. Integrity Check
       *         Token's Payload cross-check with signature.
       * */
-    public Claims parseToken(String token) {
+    public Claims parseToken(String token) throws JwtException {
         return Jwts.parser()
                 .verifyWith(getSignInKey())
                 .build()
