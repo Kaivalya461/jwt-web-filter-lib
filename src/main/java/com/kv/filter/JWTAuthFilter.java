@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+
 @Component
 @Log4j2
 public class JWTAuthFilter extends OncePerRequestFilter {
@@ -44,22 +45,28 @@ public class JWTAuthFilter extends OncePerRequestFilter {
                 httpRequest.setAttribute("claims", claims);
                 filterChain.doFilter(httpRequest, httpResponse); // Proceed if token is valid
             } catch (ExpiredJwtException expiredJwtException) {
-                sendErrorResponse(HttpStatus.UNAUTHORIZED, "JWT token is expired", httpResponse);
+                setErrorStatusAndResponse(HttpStatus.UNAUTHORIZED, "JWT token is expired", httpRequest, httpResponse);
             } catch (JwtException jwtException) {
-                sendErrorResponse(HttpStatus.UNAUTHORIZED, "JWT token is invalid", httpResponse);
+                setErrorStatusAndResponse(HttpStatus.UNAUTHORIZED, "JWT token is invalid", httpRequest, httpResponse);
             }
         } else {
-            sendErrorResponse(HttpStatus.UNAUTHORIZED, "Authorization header is missing or invalid", httpResponse);
+            setErrorStatusAndResponse(HttpStatus.UNAUTHORIZED, "Authorization header is missing or invalid", httpRequest, httpResponse);
         }
     }
 
-    private void sendErrorResponse(HttpStatus httpStatus,
-                                   String errorMessage,
-                                   HttpServletResponse httpResponse
+    private void setErrorStatusAndResponse(HttpStatus httpStatus,
+                                           String errorMessage,
+                                           HttpServletRequest httpRequest,
+                                           HttpServletResponse httpResponse
     ) throws IOException {
+        //Response Status
         httpResponse.setStatus(httpStatus.value());
-        httpResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
+        //Response Headers
+        httpResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        httpResponse.setHeader("access-control-allow-origin", httpRequest.getHeader("Origin"));//Manually Set Cors Headers in RESPONSE.
+
+        //Response Body
         StandardError standardError = new StandardError(httpStatus.getReasonPhrase(), errorMessage);
         ObjectMapper objectmapper = new ObjectMapper();
         objectmapper.writeValue(httpResponse.getWriter(), standardError);
